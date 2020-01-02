@@ -1,23 +1,25 @@
-import * as React from 'react';
+import { useEffect, useState } from 'react';
 
-export const useMyHook = () => {
-  let [{
-    counter
-  }, setState] = React.useState<{
-    counter: number;
-  }>({
-    counter: 0
+import loadable from '@loadable/component';
+
+export const useLibInSSR = async (libraryName: string) => {
+  const [{ loading }, setLoading] = useState<{ loading: boolean }>({
+    loading: false
   });
+  const [{ library }, set] = useState<{ library: object | null }>({
+    library: null
+  });
+  const _lib = loadable.lib(() => import(libraryName));
 
-  React.useEffect(() => {
-    let interval = window.setInterval(() => {
-      counter++;
-      setState({counter})
-    }, 1000)
-    return () => {
-      window.clearInterval(interval);
-    };
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      (async () => {
+        setLoading({ loading: true });
+        const lib = await _lib.load();
+        set({ library: lib });
+        setLoading({ loading: false });
+      })();
+    }
   }, []);
-
-  return counter;
+  return [loading, library];
 };
